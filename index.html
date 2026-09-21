@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Step into the future — Курсы английского языка</title>
+  <meta name="description" content="Step into the future — CRM и LMS система для курсов английского языка: ученики, группы, учителя, расписание, уровни, SMS-авторизация и система баллов.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Application Styles -->
+  <link rel="stylesheet" href="./css/variables.css">
+  <link rel="stylesheet" href="./css/base.css">
+  <link rel="stylesheet" href="./css/components.css">
+  <link rel="stylesheet" href="./css/sidebar.css">
+  <link rel="stylesheet" href="./css/views.css">
+</head>
+<body>
+
+  <div id="app">
+    <!-- Backdrop for mobile drawer -->
+    <div class="sidebar-backdrop"></div>
+
+    <!-- Collapsible Responsive Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo">
+          <div class="brand-icon">S</div>
+          <span style="font-size:0.95rem;">Step into the future</span>
+        </div>
+        <span class="role-badge-display" id="sidebar-role-badge">Администратор</span>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebar-nav-list">
+        <!-- Injected dynamically by app.js based on active role -->
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-widget">
+          <div class="user-avatar" id="header-user-avatar">АД</div>
+          <div class="user-info">
+            <div class="user-name" id="header-user-name">Администратор</div>
+            <div class="user-role-label" id="header-user-role">Владелец практики</div>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm btn-app-logout" title="Выйти из аккаунта" style="color:#ef4444; padding:4px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button type="button" class="mobile-nav-toggle" id="btn-toggle-sidebar" aria-label="Открыть меню">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+
+          <div class="header-search">
+            <span class="search-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </span>
+            <input type="text" id="global-search-input" placeholder="Поиск по системе (Enter)...">
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Instant Role Switcher for Evaluation -->
+          <div class="role-badge-selector">
+            <label for="global-role-select">👤 Тест-переключатель:</label>
+            <select id="global-role-select">
+              <!-- Injected by app.js with Admin, Teachers, and Students -->
+            </select>
+          </div>
+
+          <button type="button" class="btn btn-logout-header btn-app-logout" id="btn-header-logout" title="Выйти на главный экран входа">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Выйти</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Dynamic Page Container -->
+      <main class="main-content" id="main-view-container">
+        <!-- Rendered dynamically by views -->
+      </main>
+
+      <!-- Native Mobile Bottom Navigation Bar -->
+      <nav class="mobile-bottom-bar" id="mobile-bottom-bar" aria-label="Мобильная навигация"></nav>
+    </div>
+  </div>
+
+  <!-- Native Accessible Modal Container -->
+  <dialog id="main-modal" class="app-modal"></dialog>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
