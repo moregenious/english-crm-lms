@@ -63,12 +63,8 @@ class Store {
       result = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
 
-    // Clean up any temporary dummy teacher if present
-    if (Array.isArray(result.teachers)) {
-      result.teachers = result.teachers.filter(t => t.id !== 'tch-nikita' && !(t.fullName && t.fullName === 'Ли Никита'));
-      if (result.teachers.length === 0) {
-        result.teachers = JSON.parse(JSON.stringify(INITIAL_DATA.teachers));
-      }
+    if (!Array.isArray(result.teachers) || result.teachers.length === 0) {
+      result.teachers = JSON.parse(JSON.stringify(INITIAL_DATA.teachers));
     }
 
     if (!Array.isArray(result.deletedTextbooks)) {
@@ -102,11 +98,8 @@ class Store {
         const serverData = await res.json();
         // If server returned a valid populated state
         if (serverData && typeof serverData === 'object' && serverData.groups && serverData.teachers) {
-          if (Array.isArray(serverData.teachers)) {
-            serverData.teachers = serverData.teachers.filter(t => t.id !== 'tch-nikita' && !(t.fullName && t.fullName === 'Ли Никита'));
-            if (serverData.teachers.length === 0) {
-              serverData.teachers = JSON.parse(JSON.stringify(INITIAL_DATA.teachers));
-            }
+          if (!Array.isArray(serverData.teachers) || serverData.teachers.length === 0) {
+            serverData.teachers = JSON.parse(JSON.stringify(INITIAL_DATA.teachers));
           }
           if (!Array.isArray(serverData.deletedTextbooks)) {
             serverData.deletedTextbooks = [];
@@ -1824,8 +1817,8 @@ class Store {
     if (!group) return null;
 
     const teacher = teacherId ? this.getTeacherById(teacherId) : this.getTeacherById(group.teacherId);
-    const assignedTeacherId = teacher ? teacher.id : (group.teacherId || 'tch-2');
-    const textbookName = group.textbook || 'Solutions Pre-Intermediate 3rd Edition';
+    const assignedTeacherId = teacher ? teacher.id : (group.teacherId || (this.state.teachers[0]?.id || ''));
+    const textbookName = group.textbook || (this.getTextbooks()[0] || 'English world 1');
 
     if (replaceExisting) {
       // Remove previous group lessons so clean 80 lessons are installed
@@ -1970,7 +1963,7 @@ class Store {
       }) || [];
     }
 
-    const textbookName = group.textbook || 'Solutions Pre-Intermediate 3rd Edition';
+    const textbookName = group.textbook || (this.getTextbooks()[0] || 'English world 1');
 
     return MONTH_NAMES.map(m => {
       const monthNumber = m.num;

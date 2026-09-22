@@ -14,7 +14,7 @@ class Auth {
     this.ROLE_STUDENT = 'student';
 
     this.currentRole = localStorage.getItem('crm_current_role') || null;
-    this.currentTeacherId = localStorage.getItem('crm_current_teacher_id') || 'tch-1';
+    this.currentTeacherId = localStorage.getItem('crm_current_teacher_id') || 'tch-1789335916072';
     this.currentStudentId = localStorage.getItem('crm_current_student_id') || 'stu-1';
     this.isLoggedIn = localStorage.getItem('crm_is_logged_in') === 'true';
 

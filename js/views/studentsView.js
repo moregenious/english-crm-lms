@@ -337,7 +337,7 @@ export const StudentsView = {
             </div>
             <div class="form-group">
               <label class="form-label">Текущий учебник</label>
-              <input type="text" name="textbook" id="input-student-textbook" list="textbooks-datalist" class="form-control" placeholder="например, Solutions Pre-Intermediate 3rd Edition">
+              <input type="text" name="textbook" id="input-student-textbook" list="textbooks-datalist" class="form-control" placeholder="например, English world 1">
               <datalist id="textbooks-datalist">
                 ${store.getTextbooks().map(tb => `<option value="${tb}">`).join('')}
               </datalist>

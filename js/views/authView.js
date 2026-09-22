@@ -51,15 +51,11 @@ export const AuthView = {
               <button class="btn btn-sm btn-secondary btn-demo-login" data-type="admin" style="font-weight:700; border-color:var(--color-primary); color:var(--color-primary);">
                 👑 Администратор: Юлия (5074)
               </button>
-              <button class="btn btn-sm btn-secondary btn-demo-login" data-type="teacher" data-id="tch-2">
-                🎓 Учитель: Дмитрий Алексеевич (123)
-              </button>
-              <button class="btn btn-sm btn-secondary btn-demo-login" data-type="teacher" data-id="tch-1">
-                🎓 Учитель: Елена Васильевна (123)
-              </button>
-              <button class="btn btn-sm btn-secondary btn-demo-login" data-type="teacher" data-id="tch-3">
-                🎓 Учитель: Анна Сергеевна (123)
-              </button>
+              ${teachers.map(t => `
+                <button class="btn btn-sm btn-secondary btn-demo-login" data-type="teacher" data-id="${t.id}">
+                  🎓 Преподаватель: ${t.fullName} (${t.password || '1234'})
+                </button>
+              `).join('')}
               <button class="btn btn-sm btn-secondary btn-demo-login" data-type="student" data-phone="+7 (915) 111-22-33">
                 🎒 Ученик: Александр Морозов (+7 915 111-22-33)
               </button>
@@ -169,13 +165,13 @@ export const AuthView = {
         <div class="text-xs font-bold text-muted uppercase" style="margin-bottom:var(--space-3);">Или войдите по Email / логину / телефону:</div>
         <div class="form-group">
           <label class="form-label">Email, логин или телефон <span class="required">*</span></label>
-          <input type="text" id="input-staff-login" name="login" class="form-control" placeholder="например, linikitajulia@gmail.com или dmitriy" required>
+          <input type="text" id="input-staff-login" name="login" class="form-control" placeholder="например, linikitajulia@gmail.com или moregenious" required>
         </div>
 
         <div class="form-group">
           <label class="form-label">Пароль <span class="required">*</span></label>
           <input type="password" id="input-staff-pass" name="password" class="form-control" placeholder="••••••••" required>
-          <div class="form-hint">💡 Вход Администратора: <strong>linikitajulia@gmail.com</strong> (пароль: <strong>5074</strong>) | Учителя: пароль <strong>123</strong></div>
+          <div class="form-hint">💡 Вход Администратора: <strong>linikitajulia@gmail.com</strong> (пароль: <strong>5074</strong>) | Преподаватель: <strong>moregenious</strong> (пароль: <strong>1234</strong>)</div>
         </div>
 
         <div id="auth-staff-error" class="auth-error-alert" style="display:none; margin-top:var(--space-3);"></div>
