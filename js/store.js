@@ -5,7 +5,7 @@
 
 import { INITIAL_DATA, MONTH_NAMES } from './data/seedData.js';
 
-const STORAGE_KEY = 'step_into_future_crm_v5';
+const STORAGE_KEY = 'step_into_future_crm_v6';
 
 export function normalizePhone(rawPhone) {
   if (!rawPhone) return '';
@@ -49,11 +49,22 @@ class Store {
   loadState() {
     let result = null;
     try {
+      // Clear legacy storage keys so old test data (3 teachers, old groups) is removed from browser
+      ['step_into_future_crm_v1', 'step_into_future_crm_v2', 'step_into_future_crm_v3', 'step_into_future_crm_v4', 'step_into_future_crm_v5'].forEach(k => {
+        try { localStorage.removeItem(k); } catch (e) {}
+      });
+
       const serialized = localStorage.getItem(STORAGE_KEY);
       if (serialized) {
         const parsed = JSON.parse(serialized);
         if (parsed.groups && parsed.students && parsed.teachers) {
-          result = parsed;
+          // If cached data has more than 1 teacher, it is from the old pre-release test database - discard it!
+          if (parsed.teachers.length > 1) {
+            console.info('Discarding legacy multi-teacher database cache');
+            result = null;
+          } else {
+            result = parsed;
+          }
         }
       }
     } catch (e) {
@@ -93,7 +104,11 @@ class Store {
     }
 
     try {
-      const res = await fetch('/api/state?t=' + Date.now(), { cache: 'no-store' });
+      let res = await fetch('/api/state?t=' + Date.now(), { cache: 'no-store' });
+      // Fallback for static hosting (e.g. Vercel, GitHub Pages) where /api/state is not handled by Python
+      if (!res.ok) {
+        res = await fetch('/db.json?t=' + Date.now(), { cache: 'no-store' });
+      }
       if (res.ok) {
         const serverData = await res.json();
         // If server returned a valid populated state
