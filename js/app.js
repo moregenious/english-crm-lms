@@ -419,16 +419,7 @@ class App {
       sidebarRoleBadge.textContent = role === 'admin' ? 'Администратор' : role === 'teacher' ? 'Учитель' : 'Ученик';
     }
 
-    const roleSelect = document.getElementById('global-role-select');
-    if (roleSelect) {
-      if (role === 'admin') {
-        roleSelect.value = 'admin';
-      } else if (role === 'teacher') {
-        roleSelect.value = `teacher:${auth.currentTeacherId}`;
-      } else if (role === 'student') {
-        roleSelect.value = `student:${auth.currentStudentId}`;
-      }
-    }
+
   }
 
   bindHeaderAndSidebarEvents() {
@@ -475,44 +466,6 @@ class App {
       }
     });
 
-    const roleSelect = document.getElementById('global-role-select');
-    if (roleSelect) {
-      const teachers = store.getTeachers();
-      const students = store.getStudents();
-
-      roleSelect.innerHTML = `
-        <optgroup label="Руководство">
-          <option value="admin">👑 Администратор</option>
-        </optgroup>
-        <optgroup label="Преподаватели">
-          ${teachers.map(t => `<option value="teacher:${t.id}">🎓 ${t.fullName.split(' ')[0]} ${t.fullName.split(' ')[1] || ''}</option>`).join('')}
-        </optgroup>
-        <optgroup label="Ученики (SMS-вход)">
-          ${students.map(s => {
-            const grp = store.getGroupById(s.groupId);
-            return `<option value="student:${s.id}">🎒 ${s.fullName} (${s.phone})</option>`;
-          }).join('')}
-        </optgroup>
-      `;
-
-      roleSelect.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (val === 'admin') {
-          auth.setRole('admin');
-          toast.info('Вход в панель Администратора');
-        } else if (val.startsWith('teacher:')) {
-          const teacherId = val.replace('teacher:', '');
-          auth.setRole('teacher', teacherId);
-          const t = store.getTeacherById(teacherId);
-          toast.info(`Вход в кабинет: ${t ? t.fullName : 'Учитель'}`);
-        } else if (val.startsWith('student:')) {
-          const studentId = val.replace('student:', '');
-          auth.setRole('student', studentId);
-          const s = store.getStudentById(studentId);
-          toast.info(`Вход в кабинет: ${s ? s.fullName : 'Ученик'}`);
-        }
-      });
-    }
 
     const globalSearch = document.getElementById('global-search-input');
     globalSearch?.addEventListener('keydown', (e) => {
