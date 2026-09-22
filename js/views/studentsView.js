@@ -20,7 +20,7 @@ export const StudentsView = {
     const activeStart = activeEl?.selectionStart;
     const activeEnd = activeEl?.selectionEnd;
 
-    const isAdmin = auth.isAdmin();
+    const canManage = auth.isAdmin() || auth.isTeacher();
     const groups = store.getGroups();
     const students = store.getStudents({
       groupId: this.filterGroup,
@@ -36,7 +36,7 @@ export const StudentsView = {
           <p>База учащихся, распределение по учебным группам, контактные данные и успеваемость</p>
         </div>
         <div class="section-actions">
-          ${isAdmin ? `
+          ${canManage ? `
             <button class="btn btn-primary" id="btn-add-student">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               Добавить ученика
@@ -89,11 +89,11 @@ export const StudentsView = {
             <div class="empty-state-icon">🔍</div>
             <div class="empty-state-title">Ученики не найдены</div>
             <div class="empty-state-desc">Попробуйте изменить параметры поиска или добавьте нового ученика.</div>
-            ${isAdmin ? `<button class="btn btn-primary btn-sm" id="btn-empty-add-student">Добавить ученика</button>` : ''}
+            ${canManage ? `<button class="btn btn-primary btn-sm" id="btn-empty-add-student">Добавить ученика</button>` : ''}
           </div>
         ` : `
           <div class="students-grid">
-            ${students.map(s => this.renderStudentCard(s, isAdmin)).join('')}
+            ${students.map(s => this.renderStudentCard(s, canManage)).join('')}
           </div>
         `}
       </div>
@@ -112,7 +112,7 @@ export const StudentsView = {
     }
   },
 
-  renderStudentCard(student, isAdmin) {
+  renderStudentCard(student, canManage = false) {
     const levelClass = 'level-' + student.level.toLowerCase().replace(/[^a-z0-9]/g, '-');
     const shiftClass = student.shift === 'Первая' ? 'badge-shift-1' : 'badge-shift-2';
     const group = store.getGroupById(student.groupId);
@@ -186,7 +186,7 @@ export const StudentsView = {
           </button>
           
           <div style="display:flex; gap:var(--space-2);">
-            ${isAdmin ? `
+            ${canManage ? `
               <button class="btn btn-ghost btn-sm btn-edit-student" data-id="${student.id}" title="Редактировать">✏️</button>
               <button class="btn btn-ghost btn-sm btn-delete-student" data-id="${student.id}" title="Удалить" style="color:var(--color-danger)">🗑️</button>
             ` : ''}
@@ -197,7 +197,7 @@ export const StudentsView = {
   },
 
   updateGridOnly(container) {
-    const isAdmin = auth.isAdmin();
+    const canManage = auth.isAdmin() || auth.isTeacher();
     const students = store.getStudents({
       groupId: this.filterGroup,
       level: this.filterLevel,
@@ -211,11 +211,11 @@ export const StudentsView = {
           <div class="empty-state-icon">🔍</div>
           <div class="empty-state-title">Ученики не найдены</div>
           <div class="empty-state-desc">Попробуйте изменить параметры поиска или добавьте нового ученика.</div>
-          ${isAdmin ? `<button class="btn btn-primary btn-sm" id="btn-empty-add-student">Добавить ученика</button>` : ''}
+          ${canManage ? `<button class="btn btn-primary btn-sm" id="btn-empty-add-student">Добавить ученика</button>` : ''}
         </div>
       ` : `
         <div class="students-grid">
-          ${students.map(s => this.renderStudentCard(s, isAdmin)).join('')}
+          ${students.map(s => this.renderStudentCard(s, canManage)).join('')}
         </div>
       `;
       this.bindCardEvents(container);
@@ -684,8 +684,29 @@ export const StudentsView = {
         </div>
       `,
       footerHtml: `
-        <button type="button" class="btn btn-secondary" onclick="document.getElementById('main-modal').close()">Закрыть</button>
-      `
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          ${auth.isAdmin() || auth.isTeacher() ? `
+            <button type="button" class="btn btn-ghost btn-sm btn-modal-delete-student" data-id="${student.id}" style="color:var(--color-danger); font-weight:600;">
+              🗑️ Удалить ученика
+            </button>
+          ` : '<div></div>'}
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('main-modal').close()">Закрыть</button>
+        </div>
+      `,
+      onOpen: () => {
+        document.querySelector('.btn-modal-delete-student')?.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          if (confirm(`Удалить ученика "${student.fullName}" из базы школы?`)) {
+            store.deleteStudent(id);
+            modal.close();
+            toast.success('Ученик удален');
+            const page = document.querySelector('.page-container');
+            if (page) {
+              this.render(page);
+            }
+          }
+        });
+      }
     });
   }
 };

@@ -267,12 +267,15 @@ export const TeacherCabinet = {
                     </div>
                   </div>
 
-                  <div style="margin-top: var(--space-2); display: flex; justify-content: flex-end; gap: var(--space-2);">
+                  <div style="margin-top: var(--space-2); display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2);">
                     <button class="btn btn-sm btn-secondary btn-teacher-edit-phone" data-id="${st.id}" style="padding: 2px 8px; font-size: 0.75rem;">
-                      📱 Изменить номер
+                      📱 Номер
                     </button>
                     <button class="btn btn-sm btn-outline-primary btn-teacher-student-details" data-id="${st.id}" style="padding: 2px 8px; font-size: 0.75rem;">
                       Карточка
+                    </button>
+                    <button class="btn btn-sm btn-ghost btn-teacher-delete-student" data-id="${st.id}" title="Удалить ученика" style="padding: 2px 6px; font-size: 0.8rem; color:var(--color-danger);">
+                      🗑️
                     </button>
                   </div>
                 </div>
@@ -441,6 +444,19 @@ export const TeacherCabinet = {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.getAttribute('data-id');
         this.openEditPhoneModal(id, container);
+      });
+    });
+
+    // Teacher delete student
+    container.querySelectorAll('.btn-teacher-delete-student').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        const st = store.getStudentById(id);
+        if (confirm(`Удалить ученика "${st ? st.fullName : ''}" из базы школы?`)) {
+          store.deleteStudent(id);
+          toast.success('Ученик удален');
+          this.render(container);
+        }
       });
     });
   },
