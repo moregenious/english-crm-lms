@@ -4,6 +4,7 @@
  */
 
 import { INITIAL_DATA, MONTH_NAMES } from './data/seedData.js';
+import { initCloudSync, saveCloudState } from './firebase.js';
 
 const STORAGE_KEY = 'step_into_future_crm_v6';
 
@@ -36,14 +37,18 @@ class Store {
     this._isSaving = false;
     this._saveTimeout = null;
     this._lastLocalSave = 0;
+    this._lessonsModified = false;
 
     // Load local storage as initial display state only
     this.state = this.loadState();
     this.ensureVocabularyPoolSynced();
 
-    // Immediately fetch the true authoritative server state
+    // Immediately fetch authoritative server state if running local server.py
     this.syncWithServer(false, true);
     this.initAutoSync();
+
+    // Initialize Firebase Firestore cloud synchronization
+    initCloudSync(this);
   }
 
   loadState() {
@@ -80,6 +85,10 @@ class Store {
 
     if (!Array.isArray(result.deletedTextbooks)) {
       result.deletedTextbooks = [];
+    }
+
+    if (!Array.isArray(result.deletedStudents)) {
+      result.deletedStudents = [];
     }
 
     result.admin = INITIAL_DATA.admin;
@@ -197,6 +206,142 @@ class Store {
     }
   }
 
+  applyCloudAppData(cloudData) {
+    if (!cloudData || typeof cloudData !== 'object') return;
+    if (!this.state) this.state = {};
+
+    let needsPushBack = false;
+
+    // 1. Admin
+    if (cloudData.admin) {
+      this.state.admin = cloudData.admin;
+    }
+
+    // 2. Teachers
+    if (Array.isArray(cloudData.teachers) && cloudData.teachers.length > 0) {
+      this.state.teachers = cloudData.teachers;
+    }
+
+    // 3. Deleted students tracking
+    if (Array.isArray(cloudData.deletedStudents)) {
+      this.state.deletedStudents = Array.from(new Set([...(this.state.deletedStudents || []), ...cloudData.deletedStudents]));
+    }
+    const deletedStudentIds = new Set(this.state.deletedStudents || []);
+
+    // 4. Students - smart merge to never lose local students (e.g. +7 (747) 859-07-21)
+    if (Array.isArray(cloudData.students)) {
+      let mergedStudents = [...cloudData.students];
+      mergedStudents = mergedStudents.filter(s => !deletedStudentIds.has(s.id));
+
+      if (Array.isArray(this.state.students)) {
+        const cloudPhones = new Set(mergedStudents.map(s => normalizePhone(s.phone)));
+        const cloudIds = new Set(mergedStudents.map(s => s.id));
+
+        const localOnlyStudents = this.state.students.filter(s => 
+          !cloudIds.has(s.id) && 
+          !cloudPhones.has(normalizePhone(s.phone)) &&
+          !deletedStudentIds.has(s.id)
+        );
+
+        if (localOnlyStudents.length > 0) {
+          console.info(`☁️ Merging ${localOnlyStudents.length} local student(s) into cloud:`, localOnlyStudents.map(s => s.fullName));
+          mergedStudents.push(...localOnlyStudents);
+          needsPushBack = true;
+        }
+      }
+      this.state.students = mergedStudents;
+    }
+
+    // 5. Groups - smart merge
+    if (Array.isArray(cloudData.groups)) {
+      let mergedGroups = [...cloudData.groups];
+      if (Array.isArray(this.state.groups)) {
+        const cloudGroupIds = new Set(mergedGroups.map(g => g.id));
+        const localOnlyGroups = this.state.groups.filter(g => !cloudGroupIds.has(g.id));
+        if (localOnlyGroups.length > 0) {
+          mergedGroups.push(...localOnlyGroups);
+          needsPushBack = true;
+        }
+      }
+      this.state.groups = mergedGroups;
+    }
+
+    // 6. Schedule
+    if (Array.isArray(cloudData.schedule)) {
+      this.state.schedule = cloudData.schedule;
+    }
+
+    // 7. Payments
+    if (cloudData.payments && typeof cloudData.payments === 'object') {
+      this.state.payments = cloudData.payments;
+    }
+
+    // 8. Point records
+    if (Array.isArray(cloudData.pointRecords)) {
+      this.state.pointRecords = cloudData.pointRecords;
+    }
+
+    // 9. Shop items & purchases
+    if (Array.isArray(cloudData.shopItems)) {
+      this.state.shopItems = cloudData.shopItems;
+    }
+    if (Array.isArray(cloudData.purchases)) {
+      if (Array.isArray(this.state.purchases)) {
+        const localMap = new Map(this.state.purchases.map(p => [p.id, p]));
+        cloudData.purchases.forEach(cp => {
+          const lp = localMap.get(cp.id);
+          if (lp && lp.status === 'cancelled' && cp.status !== 'cancelled') {
+            cp.status = 'cancelled';
+          }
+        });
+      }
+      this.state.purchases = cloudData.purchases;
+    }
+
+    // 10. Deleted textbooks
+    if (Array.isArray(cloudData.deletedTextbooks)) {
+      this.state.deletedTextbooks = cloudData.deletedTextbooks;
+    }
+    if (Array.isArray(cloudData.textbooks)) {
+      this.state.textbooks = cloudData.textbooks;
+    }
+
+    this.normalizeShopAndStudentBalances(this.state);
+    this.ensureVocabularyPoolSynced(this.state);
+
+    this._serverSynced = true;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+    } catch (e) {}
+
+    this.notify();
+
+    if (needsPushBack) {
+      saveCloudState(this.state, { appData: true, lessons: false });
+    }
+  }
+
+  applyCloudLessonsData(cloudData) {
+    if (!cloudData || typeof cloudData !== 'object') return;
+    if (!this.state) this.state = {};
+
+    if (cloudData.textbookLessons && Object.keys(cloudData.textbookLessons).length > 0) {
+      this.state.textbookLessons = cloudData.textbookLessons;
+    }
+    if (cloudData.textbookVocabularyPool && Object.keys(cloudData.textbookVocabularyPool).length > 0) {
+      this.state.textbookVocabularyPool = cloudData.textbookVocabularyPool;
+    }
+
+    this.normalizeFilesTarget(this.state);
+    this.ensureVocabularyPoolSynced(this.state);
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+    } catch (e) {}
+
+    this.notify();
+  }
+
   normalizeFilesTarget(obj) {
     if (!obj || !obj.textbookLessons) return;
     for (const tb of Object.values(obj.textbookLessons)) {
@@ -296,15 +441,6 @@ class Store {
   }
 
   saveState(immediate = false) {
-    if (!this._serverSynced) {
-      // Local state has not yet synced with server. Persist locally only, DO NOT overwrite server db.json!
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
-      } catch (e) {}
-      this.notify();
-      return;
-    }
-
     this._lastLocalSave = Date.now();
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
@@ -316,6 +452,19 @@ class Store {
     const doSave = async () => {
       this._saveTimeout = null;
       this._isSaving = true;
+
+      // 1. Save to cloud Firestore (all devices sync real-time)
+      try {
+        saveCloudState(this.state, { 
+          appData: true, 
+          lessons: !!this._lessonsModified 
+        });
+        this._lessonsModified = false;
+      } catch (err) {
+        console.warn('Background cloud state save warning:', err);
+      }
+
+      // 2. Save to localhost server.py backend (if running)
       try {
         await fetch('/api/state', {
           method: 'POST',
@@ -323,7 +472,7 @@ class Store {
           body: JSON.stringify(this.state)
         });
       } catch (e) {
-        console.warn('Background server state save error:', e);
+        // Silently skip on static hosting
       } finally {
         this._isSaving = false;
       }
@@ -515,6 +664,7 @@ class Store {
     if (Array.isArray(this.state.deletedTextbooks)) {
       this.state.deletedTextbooks = this.state.deletedTextbooks.filter(tb => tb !== trimmed);
     }
+    this._lessonsModified = true;
     this.saveState();
     return true;
   }
@@ -548,6 +698,7 @@ class Store {
     if (!this.state.deletedTextbooks.includes(name)) {
       this.state.deletedTextbooks.push(name);
     }
+    this._lessonsModified = true;
     this.saveState(true);
     return true;
   }
@@ -643,6 +794,7 @@ class Store {
       updatedAt: new Date().toISOString()
     };
 
+    this._lessonsModified = true;
     this.saveState(true);
     return this.state.textbookLessons[textbookName][mNum][lNum];
   }
@@ -1118,6 +1270,7 @@ class Store {
       });
     }
 
+    this._lessonsModified = true;
     this.saveState();
     return newWordObj;
   }
@@ -1387,9 +1540,15 @@ class Store {
   }
 
   deleteStudent(id) {
-    this.state.students = this.state.students.filter(s => s.id !== id);
-    this.state.schedule = this.state.schedule.filter(sch => sch.studentId !== id);
-    this.state.pointRecords = this.state.pointRecords.filter(pt => pt.studentId !== id);
+    if (!Array.isArray(this.state.deletedStudents)) {
+      this.state.deletedStudents = [];
+    }
+    if (!this.state.deletedStudents.includes(id)) {
+      this.state.deletedStudents.push(id);
+    }
+    this.state.students = (this.state.students || []).filter(s => s.id !== id);
+    this.state.schedule = (this.state.schedule || []).filter(sch => sch.studentId !== id);
+    this.state.pointRecords = (this.state.pointRecords || []).filter(pt => pt.studentId !== id);
     this.saveState(true);
   }
 

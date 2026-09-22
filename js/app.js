@@ -7,6 +7,7 @@ import { store } from './store.js';
 import { auth } from './auth.js';
 import { modal } from './components/modal.js';
 import { toast } from './components/toast.js';
+import { onCloudStatusChange } from './firebase.js';
 
 // Views
 import { AuthView } from './views/authView.js';
@@ -66,6 +67,42 @@ class App {
     this.updateMobileBottomBar();
     this.updateHeaderProfile();
     this.navigateBasedOnRole();
+
+    // Listen to Firebase cloud synchronization status
+    onCloudStatusChange((status) => {
+      this.updateCloudSyncBadge(status);
+    });
+  }
+
+  updateCloudSyncBadge(status) {
+    const badge = document.getElementById('cloud-sync-indicator');
+    if (!badge) return;
+
+    badge.className = `cloud-sync-badge ${status}`;
+    const textEl = badge.querySelector('.cloud-sync-text');
+    if (!textEl) return;
+
+    switch (status) {
+      case 'connected':
+        textEl.textContent = '☁️ Онлайн база';
+        badge.title = 'Облачная база Firestore активна. Все устройства (ПК, телефоны) синхронизированы в реальном времени.';
+        break;
+      case 'saving':
+        textEl.textContent = '☁️ Сохранение...';
+        badge.title = 'Сохранение изменений в облачную базу данных...';
+        break;
+      case 'connecting':
+        textEl.textContent = '☁️ Подключение...';
+        badge.title = 'Подключение к Firebase Firestore...';
+        break;
+      case 'offline':
+      case 'error':
+        textEl.textContent = '⚡ Офлайн (кэш)';
+        badge.title = 'Работа в локальном режиме. Убедитесь, что Firestore Database активирована в тестовом режиме в консоли Firebase.';
+        break;
+      default:
+        textEl.textContent = '☁️ Онлайн база';
+    }
   }
 
   updateAppLayout() {

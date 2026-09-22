@@ -776,3 +776,64 @@ dialog.app-modal::backdrop {
   }
 }
 
+/* Cloud Sync Status Badge */
+.cloud-sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  cursor: default;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cloud-sync-badge.connecting {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.cloud-sync-badge.saving {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.cloud-sync-badge.offline {
+  background: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.25);
+}
+
+.cloud-sync-badge.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.cloud-sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: currentColor;
+  box-shadow: 0 0 5px currentColor;
+  flex-shrink: 0;
+}
+
+.cloud-sync-badge.saving .cloud-sync-dot,
+.cloud-sync-badge.connecting .cloud-sync-dot {
+  animation: pulse-cloud-dot 1s infinite alternate ease-in-out;
+}
+
+@keyframes pulse-cloud-dot {
+  0% { opacity: 0.3; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1.15); }
+}
+
+
