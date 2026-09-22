@@ -104,14 +104,10 @@ class Store {
     }
 
     try {
-      let res = await fetch('/api/state?t=' + Date.now(), { cache: 'no-store' });
-      // Fallback for static hosting (e.g. Vercel, GitHub Pages) where /api/state is not handled by Python
-      if (!res.ok) {
-        res = await fetch('/db.json?t=' + Date.now(), { cache: 'no-store' });
-      }
+      const res = await fetch('/api/state?t=' + Date.now(), { cache: 'no-store' });
       if (res.ok) {
+        // Live server backend (e.g. localhost server.py or Render.com)
         const serverData = await res.json();
-        // If server returned a valid populated state
         if (serverData && typeof serverData === 'object' && serverData.groups && serverData.teachers) {
           if (!Array.isArray(serverData.teachers) || serverData.teachers.length === 0) {
             serverData.teachers = JSON.parse(JSON.stringify(INITIAL_DATA.teachers));
@@ -158,9 +154,32 @@ class Store {
             body: JSON.stringify(this.state)
           });
         }
+      } else {
+        // Static hosting environment (e.g. Vercel, GitHub Pages) without Python server.py backend.
+        // DO NOT continuously poll and overwrite user modifications with static db.json!
+        // Only seed from /db.json if localStorage was completely empty.
+        const localSaved = localStorage.getItem(STORAGE_KEY);
+        if (!localSaved) {
+          try {
+            const dbRes = await fetch('/db.json?t=' + Date.now(), { cache: 'no-store' });
+            if (dbRes.ok) {
+              const seedData = await dbRes.json();
+              if (seedData && typeof seedData === 'object' && seedData.groups && seedData.teachers) {
+                this.normalizeFilesTarget(seedData);
+                this.normalizeShopAndStudentBalances(seedData);
+                this.ensureVocabularyPoolSynced(seedData);
+                this.state = seedData;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+                this.notify();
+              }
+            }
+          } catch (e) {}
+        }
+        this._serverSynced = true;
       }
     } catch (err) {
       if (!silent) console.warn('State sync with server offline/skipped:', err);
+      this._serverSynced = true;
     }
   }
 
@@ -292,6 +311,7 @@ class Store {
     } catch (e) {
       console.error('Failed to save state to localStorage', e);
     }
+    this.notify();
 
     const doSave = async () => {
       this._saveTimeout = null;
